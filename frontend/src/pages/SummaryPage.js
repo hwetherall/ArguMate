@@ -2,6 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { scoreClaims } from '../services/apiClient';
 import SummaryView from '../components/SummaryView';
+import { 
+  Container, 
+  Paper, 
+  Typography, 
+  Button, 
+  Box, 
+  CircularProgress,
+  Divider 
+} from '@mui/material';
 
 function SummaryPage() {
   const location = useLocation();
@@ -18,7 +27,12 @@ function SummaryPage() {
 
     const getScores = async () => {
       try {
-        const scoreResults = await scoreClaims(claims);
+        const formattedClaims = claims.map(claim => ({
+          claim: claim.text,
+          evidence: claim.evidence.map(e => e.content).join(' ')
+        }));
+        
+        const scoreResults = await scoreClaims(formattedClaims);
         setScores(scoreResults);
       } catch (error) {
         alert(error.message);
@@ -31,14 +45,26 @@ function SummaryPage() {
   }, [claims, navigate]);
 
   if (loading) {
-    return <div>Calculating scores...</div>;
+    return (
+      <Container sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+        <CircularProgress />
+      </Container>
+    );
   }
 
   return (
-    <div className="summary-page">
-      <SummaryView claims={claims} scores={scores} />
-      <button onClick={() => navigate('/claims')}>Start New Analysis</button>
-    </div>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <SummaryView scores={scores} />
+      <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+        <Button 
+          variant="contained" 
+          onClick={() => navigate('/')}
+          sx={{ mr: 2 }}
+        >
+          Start New Analysis
+        </Button>
+      </Box>
+    </Container>
   );
 }
 

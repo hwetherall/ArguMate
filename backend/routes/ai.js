@@ -4,6 +4,7 @@ const OpenAI = require('openai');
 const generateClaimsPrompt = require('../prompts/generateClaimsPrompt');
 const askAIWithoutDocsPrompt = require('../prompts/askAIWithoutDocsPrompt');
 const askAIWithDocsPrompt = require('../prompts/askAIWithDocsPrompt');
+const scoringPrompt = require('../prompts/scoringPrompt');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -141,6 +142,34 @@ router.post('/ask-docs', async (req, res) => {
   } catch (error) {
     console.error('Error processing document evidence request:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/score-claims', async (req, res) => {
+  try {
+    const { claims } = req.body;
+    
+    if (!Array.isArray(claims) || claims.length === 0) {
+      return res.status(400).json({ error: 'Claims must be a non-empty array' });
+    }
+
+    const prompt = scoringPrompt(
+      req.body.problemStatement || '',
+      req.body.productDescription || '',
+      claims
+    );
+
+    const completion = await openai.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "gpt-3.5-turbo",
+      response_format: { type: "json_object" },
+    });
+
+    const result = JSON.parse(completion.choices[0].message.content);
+    res.json(result);
+  } catch (error) {
+    console.error('Error scoring claims:', error);
+    res.status(500).json({ error: 'Failed to score claims' });
   }
 });
 

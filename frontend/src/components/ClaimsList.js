@@ -6,15 +6,24 @@ import {
   Paper,
   Typography,
   Divider,
-  Chip,
-  CircularProgress
+  CircularProgress,
+  IconButton
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 
-function ClaimsList({ claims, onAddManualEvidence, onAskAI, onAskDocuments }) {
+function ClaimsList({ 
+  claims, 
+  onAddManualEvidence, 
+  onAskAI, 
+  onAskDocuments,
+  setClaims,
+  thinkingType
+}) {
   const [manualInputs, setManualInputs] = useState({});
-  const [loadingClaimId, setLoadingClaimId] = useState(null);
 
-  const handleManualInputChange = (claimId, value) => {
+  const handleManualInputChange = (claimId, event) => {
+    const value = event?.target?.value || '';
+    
     setManualInputs(prev => ({
       ...prev,
       [claimId]: value
@@ -22,8 +31,9 @@ function ClaimsList({ claims, onAddManualEvidence, onAskAI, onAskDocuments }) {
   };
 
   const handleManualSubmit = (claimId) => {
-    if (manualInputs[claimId]) {
-      onAddManualEvidence(claimId, manualInputs[claimId]);
+    const evidenceText = manualInputs[claimId];
+    if (evidenceText?.trim()) {
+      onAddManualEvidence(claimId, evidenceText.trim());
       setManualInputs(prev => ({
         ...prev,
         [claimId]: ''
@@ -31,10 +41,15 @@ function ClaimsList({ claims, onAddManualEvidence, onAskAI, onAskDocuments }) {
     }
   };
 
-  const handleAskAI = async (claimId) => {
-    setLoadingClaimId(claimId);
-    await onAskAI(claimId);
-    setLoadingClaimId(null);
+  const handleDeleteEvidence = (claimId, evidenceIndex) => {
+    setClaims(claims.map(claim => 
+      claim.id === claimId 
+        ? {
+            ...claim,
+            evidence: claim.evidence.filter((_, index) => index !== evidenceIndex)
+          }
+        : claim
+    ));
   };
 
   return (
@@ -61,31 +76,36 @@ function ClaimsList({ claims, onAddManualEvidence, onAskAI, onAskDocuments }) {
               variant="outlined"
               placeholder="Add manual evidence..."
               value={manualInputs[claim.id] || ''}
-              onChange={(e) => handleManualInputChange(claim.id, e.target.value)}
+              onChange={(e) => handleManualInputChange(claim.id, e)}
               sx={{ mb: 1 }}
             />
-            <Button
-              variant="outlined"
-              onClick={() => handleManualSubmit(claim.id)}
-              disabled={!manualInputs[claim.id]}
-              sx={{ mr: 1 }}
-            >
-              Add Manual Evidence
-            </Button>
-            <Button 
-              variant="outlined"
-              onClick={() => handleAskAI(claim.id)}
-              disabled={loadingClaimId === claim.id}
-              startIcon={loadingClaimId === claim.id ? <CircularProgress size={20} /> : null}
-            >
-              {loadingClaimId === claim.id ? 'AI Thinking...' : 'Ask AI'}
-            </Button>
-            <Button 
-              variant="outlined"
-              onClick={() => onAskDocuments(claim.id)}
-            >
-              Ask Documents
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                onClick={() => handleManualSubmit(claim.id)}
+                disabled={!manualInputs[claim.id] || thinkingType.claimId === claim.id}
+              >
+                Add Manual Evidence
+              </Button>
+              <Button 
+                variant="outlined"
+                onClick={() => onAskAI(claim.id)}
+                disabled={thinkingType.claimId === claim.id}
+              >
+                {thinkingType.claimId === claim.id && thinkingType.type === 'ai' 
+                  ? "AI thinking..." 
+                  : "Ask AI"}
+              </Button>
+              <Button 
+                variant="outlined"
+                onClick={() => onAskDocuments(claim.id)}
+                disabled={thinkingType.claimId === claim.id}
+              >
+                {thinkingType.claimId === claim.id && thinkingType.type === 'documents' 
+                  ? "AI analyzing documents..." 
+                  : "Ask Documents"}
+              </Button>
+            </Box>
           </Box>
 
           {claim.evidence && claim.evidence.length > 0 && (
@@ -95,28 +115,42 @@ function ClaimsList({ claims, onAddManualEvidence, onAskAI, onAskDocuments }) {
                 Evidence:
               </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {claim.evidence.map((evidence, index) => (
+                {claim.evidence.map((evidence, evidenceIndex) => (
                   <Box 
-                    key={index} 
+                    key={evidenceIndex} 
                     sx={{ 
+                      position: 'relative', 
                       p: 2, 
                       bgcolor: '#f5f5f5',
-                      borderRadius: 1,
-                      position: 'relative'
+                      borderRadius: 1
                     }}
                   >
-                    <Chip
-                      label={evidence.type}
-                      size="small"
+                    <Box sx={{ pr: 4 }}>
+                      <Typography variant="body1">
+                        {evidence.content}
+                      </Typography>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          display: 'block', 
+                          mt: 1, 
+                          color: 'text.secondary' 
+                        }}
+                      >
+                        Source: {evidence.type}
+                      </Typography>
+                    </Box>
+                    <IconButton 
+                      size="small" 
                       sx={{ 
-                        position: 'absolute',
-                        top: 8,
-                        right: 8
+                        position: 'absolute', 
+                        top: 8, 
+                        right: 8 
                       }}
-                    />
-                    <Typography variant="body2">
-                      {evidence.content}
-                    </Typography>
+                      onClick={() => handleDeleteEvidence(claim.id, evidenceIndex)}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
                   </Box>
                 ))}
               </Box>

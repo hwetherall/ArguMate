@@ -24,6 +24,7 @@ function ClaimsPage() {
   const [loading, setLoading] = useState(false);
   const [claims, setClaims] = useState([]);
   const [documents, setDocuments] = useState([]);
+  const [thinkingType, setThinkingType] = useState({ claimId: null, type: null });
 
   const handleGenerateClaims = async (e) => {
     e.preventDefault();
@@ -63,7 +64,7 @@ function ClaimsPage() {
   };
 
   const handleAskAI = async (claimId) => {
-    setLoading(true);
+    setThinkingType({ claimId, type: 'ai' });
     try {
       const claim = claims.find(c => c.id === claimId);
       const evidence = await getAIEvidence(claim.text, companyProfile);
@@ -76,32 +77,20 @@ function ClaimsPage() {
     } catch (error) {
       alert(error.message);
     } finally {
-      setLoading(false);
+      setThinkingType({ claimId: null, type: null });
     }
   };
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
-    if (!file) {
-      console.log('No file selected');
-      return;
-    }
-    
-    console.log('Attempting to upload file:', file.name);
-    setLoading(true);
-    
     try {
       const uploadedDoc = await uploadDocument(file);
-      console.log('Document uploaded successfully:', uploadedDoc);
-      setDocuments(prevDocs => [...prevDocs, uploadedDoc]);
-      
-      // Show feedback to user
-      alert(`Successfully uploaded ${file.name}`);
+      setDocuments([...documents, {
+        ...uploadedDoc,
+        name: file.name
+      }]);
     } catch (error) {
-      console.error('Upload error:', error);
       alert(error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -111,14 +100,10 @@ function ClaimsPage() {
       return;
     }
 
-    setLoading(true);
+    setThinkingType({ claimId, type: 'documents' });
     try {
       const claim = claims.find(c => c.id === claimId);
-      const evidence = await getDocumentEvidence(
-        claim.text, 
-        documents.map(d => d.id),
-        companyProfile
-      );
+      const evidence = await getDocumentEvidence(claim.text, documents.map(d => d.id));
       
       setClaims(claims.map(c => 
         c.id === claimId 
@@ -128,7 +113,7 @@ function ClaimsPage() {
     } catch (error) {
       alert(error.message);
     } finally {
-      setLoading(false);
+      setThinkingType({ claimId: null, type: null });
     }
   };
 
@@ -184,21 +169,14 @@ function ClaimsPage() {
             Claims Analysis
           </Typography>
           <Paper elevation={3} sx={{ p: 4, mb: 3 }}>
-            <ClaimsList
-              claims={claims}
-              onAddManualEvidence={handleAddManualEvidence}
-              onAskAI={handleAskAI}
-              onAskDocuments={handleAskDocuments}
-            />
-            
-            <Box sx={{ mt: 3, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+            <Box sx={{ mb: 3, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
               <Typography variant="h6" gutterBottom>
                 Upload Supporting Documents
               </Typography>
               <Button
                 variant="contained"
                 component="label"
-                sx={{ mr: 2 }}
+                sx={{ mr: 2, mb: 2 }}
               >
                 Upload File
                 <input
@@ -206,21 +184,41 @@ function ClaimsPage() {
                   hidden
                   accept=".pdf,.csv"
                   onChange={handleFileUpload}
-                  onClick={(e) => e.target.value = null}
                 />
               </Button>
               {documents.length > 0 && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle1">Uploaded Documents:</Typography>
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Uploaded Files:
+                  </Typography>
                   {documents.map((doc, index) => (
-                    <Typography key={index} variant="body2" color="text.secondary">
-                      {doc.name}
+                    <Typography 
+                      key={index} 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        pl: 2,
+                        py: 0.5
+                      }}
+                    >
+                      • {doc.name}
                     </Typography>
                   ))}
                 </Box>
               )}
             </Box>
 
+            <ClaimsList
+              claims={claims}
+              onAddManualEvidence={handleAddManualEvidence}
+              onAskAI={handleAskAI}
+              onAskDocuments={handleAskDocuments}
+              setClaims={setClaims}
+              thinkingType={thinkingType}
+            />
+            
             <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
               <Button 
                 variant="contained"
