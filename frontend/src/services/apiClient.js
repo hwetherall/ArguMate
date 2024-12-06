@@ -59,7 +59,7 @@ export const getDocumentEvidence = async (claim, documentIds, companyProfile) =>
 
 export const scoreClaims = async (claims) => {
   try {
-    const response = await apiClient.post('/api/ai/score', { claims });
+    const response = await apiClient.post('/api/ai/score-claims', { claims });
     return response.data;
   } catch (error) {
     throw new Error('Failed to score claims: ' + error.message);
