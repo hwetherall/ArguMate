@@ -10,9 +10,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Remove or comment out this line
-// console.log('API Key:', process.env.OPENAI_API_KEY);
-
 router.post('/generate-claims', async (req, res) => {
   try {
     const { problemStatement, productDescription } = req.body;
