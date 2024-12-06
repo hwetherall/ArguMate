@@ -41,14 +41,18 @@ export const getAIEvidence = async (claim, companyProfile) => {
   }
 };
 
-export const getDocumentEvidence = async (claim, documentIds) => {
+export const getDocumentEvidence = async (claim, documentIds, companyProfile) => {
   try {
+    console.log('Requesting document evidence for:', { claim, documentIds, companyProfile });
     const response = await apiClient.post('/api/ai/ask-docs', {
       claim,
       documentIds,
+      companyProfile
     });
+    console.log('Document evidence response:', response.data);
     return response.data;
   } catch (error) {
+    console.error('Document evidence error:', error.response || error);
     throw new Error('Failed to get document evidence: ' + error.message);
   }
 };
@@ -63,10 +67,10 @@ export const scoreClaims = async (claims) => {
 };
 
 export const uploadDocument = async (file) => {
+  const formData = new FormData();
+  formData.append('document', file);
+
   try {
-    const formData = new FormData();
-    formData.append('document', file);
-    
     const response = await apiClient.post('/api/documents/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -74,7 +78,7 @@ export const uploadDocument = async (file) => {
     });
     return response.data;
   } catch (error) {
-    throw new Error('Failed to upload document: ' + error.message);
+    throw new Error(`Failed to upload document: ${error.message}`);
   }
 };
 

@@ -82,11 +82,26 @@ function ClaimsPage() {
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+    
+    console.log('Attempting to upload file:', file.name);
+    setLoading(true);
+    
     try {
       const uploadedDoc = await uploadDocument(file);
-      setDocuments([...documents, uploadedDoc]);
+      console.log('Document uploaded successfully:', uploadedDoc);
+      setDocuments(prevDocs => [...prevDocs, uploadedDoc]);
+      
+      // Show feedback to user
+      alert(`Successfully uploaded ${file.name}`);
     } catch (error) {
+      console.error('Upload error:', error);
       alert(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,7 +114,11 @@ function ClaimsPage() {
     setLoading(true);
     try {
       const claim = claims.find(c => c.id === claimId);
-      const evidence = await getDocumentEvidence(claim.text, documents.map(d => d.id));
+      const evidence = await getDocumentEvidence(
+        claim.text, 
+        documents.map(d => d.id),
+        companyProfile
+      );
       
       setClaims(claims.map(c => 
         c.id === claimId 
@@ -187,12 +206,18 @@ function ClaimsPage() {
                   hidden
                   accept=".pdf,.csv"
                   onChange={handleFileUpload}
+                  onClick={(e) => e.target.value = null}
                 />
               </Button>
               {documents.length > 0 && (
-                <Typography variant="body2" color="text.secondary">
-                  {documents.length} document(s) uploaded
-                </Typography>
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle1">Uploaded Documents:</Typography>
+                  {documents.map((doc, index) => (
+                    <Typography key={index} variant="body2" color="text.secondary">
+                      {doc.name}
+                    </Typography>
+                  ))}
+                </Box>
               )}
             </Box>
 

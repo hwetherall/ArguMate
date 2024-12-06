@@ -11,13 +11,23 @@ import {
 } from '@mui/material';
 
 function ClaimsList({ claims, onAddManualEvidence, onAskAI, onAskDocuments }) {
-  const [manualEvidence, setManualEvidence] = useState('');
+  const [manualInputs, setManualInputs] = useState({});
   const [loadingClaimId, setLoadingClaimId] = useState(null);
 
-  const handleSubmitManualEvidence = (claimId) => {
-    if (manualEvidence.trim()) {
-      onAddManualEvidence(claimId, manualEvidence);
-      setManualEvidence('');
+  const handleManualInputChange = (claimId, value) => {
+    setManualInputs(prev => ({
+      ...prev,
+      [claimId]: value
+    }));
+  };
+
+  const handleManualSubmit = (claimId) => {
+    if (manualInputs[claimId]) {
+      onAddManualEvidence(claimId, manualInputs[claimId]);
+      setManualInputs(prev => ({
+        ...prev,
+        [claimId]: ''
+      }));
     }
   };
 
@@ -47,35 +57,35 @@ function ClaimsList({ claims, onAddManualEvidence, onAskAI, onAskDocuments }) {
             <TextField
               fullWidth
               multiline
-              rows={3}
+              rows={2}
               variant="outlined"
-              value={manualEvidence}
-              onChange={(e) => setManualEvidence(e.target.value)}
-              placeholder="Enter manual evidence..."
-              sx={{ mb: 2 }}
+              placeholder="Add manual evidence..."
+              value={manualInputs[claim.id] || ''}
+              onChange={(e) => handleManualInputChange(claim.id, e.target.value)}
+              sx={{ mb: 1 }}
             />
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <Button 
-                variant="contained"
-                onClick={() => handleSubmitManualEvidence(claim.id)}
-              >
-                Add Manual Evidence
-              </Button>
-              <Button 
-                variant="outlined"
-                onClick={() => handleAskAI(claim.id)}
-                disabled={loadingClaimId === claim.id}
-                startIcon={loadingClaimId === claim.id ? <CircularProgress size={20} /> : null}
-              >
-                {loadingClaimId === claim.id ? 'AI Thinking...' : 'Ask AI'}
-              </Button>
-              <Button 
-                variant="outlined"
-                onClick={() => onAskDocuments(claim.id)}
-              >
-                Ask Documents
-              </Button>
-            </Box>
+            <Button
+              variant="outlined"
+              onClick={() => handleManualSubmit(claim.id)}
+              disabled={!manualInputs[claim.id]}
+              sx={{ mr: 1 }}
+            >
+              Add Manual Evidence
+            </Button>
+            <Button 
+              variant="outlined"
+              onClick={() => handleAskAI(claim.id)}
+              disabled={loadingClaimId === claim.id}
+              startIcon={loadingClaimId === claim.id ? <CircularProgress size={20} /> : null}
+            >
+              {loadingClaimId === claim.id ? 'AI Thinking...' : 'Ask AI'}
+            </Button>
+            <Button 
+              variant="outlined"
+              onClick={() => onAskDocuments(claim.id)}
+            >
+              Ask Documents
+            </Button>
           </Box>
 
           {claim.evidence && claim.evidence.length > 0 && (
