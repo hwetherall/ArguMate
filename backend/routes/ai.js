@@ -3,12 +3,14 @@ const router = express.Router();
 const OpenAI = require('openai');
 const generateClaimsPrompt = require('../prompts/generateClaimsPrompt');
 const askAIWithoutDocsPrompt = require('../prompts/askAIWithoutDocsPrompt');
+const askAIWithDocsPrompt = require('../prompts/askAIWithDocsPrompt');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-console.log('API Key:', process.env.OPENAI_API_KEY);
+// Remove or comment out this line
+// console.log('API Key:', process.env.OPENAI_API_KEY);
 
 router.post('/generate-claims', async (req, res) => {
   try {
@@ -82,6 +84,63 @@ router.post('/ask-ai', async (req, res) => {
   } catch (error) {
     console.error('Error getting claim evidence:', error);
     res.status(500).json({ error: 'Failed to get claim evidence' });
+  }
+});
+
+router.post('/ask-docs', async (req, res) => {
+  console.log('Received ask-docs request:', req.body);
+  const { claim, documentIds } = req.body;
+
+  try {
+    if (!claim || !documentIds || !Array.isArray(documentIds)) {
+      return res.status(400).json({ 
+        error: 'Invalid request. Required: claim (string) and documentIds (array)' 
+      });
+    }
+
+    // Get the document content from the uploaded documents
+    const documentsCollection = global.uploadedDocuments || {};
+    const documentContent = documentIds
+      .map(id => documentsCollection[id]?.content || '')
+      .join('\n\n');
+
+    if (!documentContent) {
+      return res.status(404).json({ 
+        error: 'No document content found for the provided IDs' 
+      });
+    }
+
+    // Use the prompt with OpenAI
+    const prompt = askAIWithDocsPrompt(
+      req.body.companyProfile?.problemStatement || '',
+      req.body.companyProfile?.productDescription || '',
+      claim,
+      documentContent
+    );
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        { 
+          role: "system", 
+          content: "You are an analytical AI assistant evaluating product claims. Analyze the provided documents and provide specific evidence that supports or refutes the claim."
+        },
+        { 
+          role: "user", 
+          content: prompt 
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 500,
+    });
+
+    const evidence = completion.choices[0].message.content.trim();
+    console.log('Generated evidence:', evidence);
+    res.json(evidence);
+
+  } catch (error) {
+    console.error('Error processing document evidence request:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

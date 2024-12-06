@@ -11,7 +11,8 @@ module.exports = function askAIWithDocsPrompt(problemStatement, productDescripti
   Additional Resource:
   "${documentsText}"
   
-  Use ONLY the above document text to provide evidence. If none is found, say so.
+  Analyze the document text and provide evidence that supports or refutes the claim. 
+  Limit your response to two concise paragraphs. If no relevant evidence is found in the documents, say so briefly.
   `;
   };
   
