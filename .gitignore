@@ -31,3 +31,5 @@ yarn-error.log*
 .Trashes
 ehthumbs.db
 Thumbs.dbnode_modules/
+frontend/node_modules/.cache/
+backend/.env
