@@ -21,7 +21,7 @@ router.post('/generate-claims', async (req, res) => {
     const prompt = generateClaimsPrompt(problemStatement, productDescription);
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       messages: [
         { 
           role: "system", 
@@ -161,7 +161,7 @@ router.post('/score-claims', async (req, res) => {
 
     const completion = await openai.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "gpt-3.5-turbo",
+      model: "gpt-4o-mini",
       response_format: { type: "json_object" },
     });
 
